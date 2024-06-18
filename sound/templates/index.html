@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text to Speech</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='app.css') }}">
+    <style>
+        body {
+            background-color: #f5f5f5;
+        } 
+        h2 {
+            color: #333;
+        }
+        textarea {
+            width: 100%;
+            padding: 3px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            resize: none;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            color: #333;
+            background-color: #f9f9f9;
+        }
+       
+        audio {
+            width: 100%;
+            margin-top: 10px;
+        }
+        p {
+            margin-top: 20px;
+        }
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.5); /* Semi-transparent white */
+            z-index: 999; /* Ensure it appears on top */
+        }
+        .spinner {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100px;
+            height: 100px;
+            border: 2px solid rgba(214, 214, 214, 0.1);
+            border-left-color: #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            z-index: 1000; /* Place it above the overlay */
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .spinner {
+            display: none;
+            position: absolute;
+            top: 40%;
+            left: 40%;
+            transform: translate(-50%, -50%);
+            width: 100px;
+            height: 100px;
+            border: 2px solid rgba(223, 223, 223, 0.1);
+            border-left-color: #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+    </style>
+</head>
+<body>
+
+<div class="overlay" id="overlay"></div> <!-- Overlay div -->
+<div class="grid w-full grid-cols-12 pt-3 buttons">
+    <div class="container flex justify-between w-full gap-3 py-5 lg:flex-col lg:col-span-2 lg-max:col-span-12">
+        <a href="{{url_for('index')}}" class="p-3 bg-white border-1 border-gray-600/30 rounded-5 shadow-soft-lg hover:scale-102 hover:bg-cyan-200">
+            Speech
+        </a>
+        <a href="{{url_for('gesture')}}" class="p-3 bg-white border-1 border-gray-600/30 rounded-5 shadow-soft-lg hover:scale-102 hover:bg-cyan-200">
+            Live Image Detection
+        </a>
+    </div>
+    <div class="p-3 lg:col-span-10 lg-max:col-span-12">
+        <div class="mx-auto relative shadow-soft-xl rounded-3 lg-max:w-[98%] lg:w-[69%] bg-white p-3 text-center items-center content-center">
+            <h2>Text To Speech</h2>
+            <textarea class="mx-auto rounded-2" name="" id="text" cols="60" rows="5" placeholder="Enter Text Here..."></textarea>
+
+            <div id="convert-button" class="px-3 py-2 mx-auto text-white bg-cyan-700 rounded-2 max-w-[180px]">
+                Convert to Speech
+            </div>
+            <div class="spinner" id="loading-spinner"></div>
+            <div class="loader" id="loader" style="display: none"></div>
+            <audio id="audio" class="w-[80%] mx-auto my-2 rounded-2" controls></audio>
+            <p class="pt-3">
+                <a href="/page1" class="p-3 px-4 mt-2 text-white rounded-2 bg-cyan-400 hover:bg-cyan-800">
+                    Speech to words
+                </a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+
+    var overlay = document.getElementById('overlay');
+    var spinner = document.getElementById('loading-spinner');
+
+    document.getElementById('convert-button').addEventListener('click', function() {
+        var text = document.getElementById('text').value;
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/text_to_speech', true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.responseType = 'blob';
+
+        // Show overlay and spinner
+        overlay.style.display = 'block';
+        spinner.style.display = 'block';
+
+        xhr.onload = function() {
+            var blob = xhr.response;
+            var audio = document.getElementById('audio');
+            audio.src = URL.createObjectURL(blob);
+            audio.play();
+
+            // Hide overlay and spinner
+            overlay.style.display = 'none';
+            spinner.style.display = 'none';
+        };
+        xhr.send(JSON.stringify({text: text}));
+    });
+</script>
+</body>
+</html>

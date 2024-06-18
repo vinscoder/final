@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speech to Text</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='app.css') }}">
+    <style>
+        body {
+            background-color: #e9ecef;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        #result {
+            font-size: 16px;
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: #f8f9fa;
+            height: 150px;
+            overflow-y: auto;
+        }
+        
+        p {
+            margin-top: 20px;
+        }
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+       
+        .spinner {
+            display: none;
+            position: absolute;
+            top: 40%;
+            left: 40%;
+            transform: translate(-50%, -50%);
+            width: 100px;
+            height: 100px;
+            border: 2px solid rgba(223, 223, 223, 0.1);
+            border-left-color: #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+ 
+<div class="overlay" id="overlay"></div> <!-- Overlay div -->
+<div class="grid w-full grid-cols-12 pt-3 buttons">
+    <div class="container flex justify-between w-full gap-3 py-5 lg:flex-col lg:col-span-2 lg-max:col-span-12">
+        <a href="{{url_for('index')}}" class="p-3 bg-white border-1 border-gray-600/30 rounded-5 shadow-soft-lg hover:scale-102 hover:bg-cyan-200">
+            Speech
+        </a>
+        <a href="{{url_for('gesture')}}" class="p-3 bg-white border-1 border-gray-600/30 rounded-5 shadow-soft-lg hover:scale-102 hover:bg-cyan-200">
+            Live Image Detection
+        </a>
+    </div>
+    <div class="p-3 lg:col-span-10 lg-max:col-span-12">
+        <div class="mx-auto relative shadow-soft-xl rounded-3 lg-max:w-[98%] lg:w-[69%] bg-white p-3 text-center items-center content-center">
+            <h2>Speech to text</h2>
+            <div id="result"></div>
+            
+            <button id="record-button" class="p-3 bg-cyan-400 hover:bg-cyan-800 rounded-2 mt-2">Start Recording</button>
+            
+            <div class="spinner" id="loading-spinner"></div>
+            <div class="loader" id="loader" style="display: none"></div>
+            <p class="pt-3">
+                <a href="/" class="p-3 px-4 mt-2 text-white rounded-2 bg-cyan-400 hover:bg-cyan-800">
+                    Words to Speech
+                </a>
+            </p>
+        </div>
+    </div>
+</div>
+   
+    <script>
+        var resultDiv = document.getElementById('result');
+        var spinner = document.getElementById('loading-spinner');
+
+        var recognition = new webkitSpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+
+        document.getElementById('record-button').addEventListener('click', function() {
+            recognition.start();
+            resultDiv.innerHTML = "<p><em>Recording...</em></p>";
+            spinner.style.display = 'block';
+        });
+
+        recognition.onresult = function(event) {
+            var result = event.results[event.results.length - 1];
+            var text = result[0].transcript;
+            var isFinal = result.isFinal;
+
+            if (isFinal) {
+                resultDiv.innerHTML += "<p>" + text + "</p>";
+                saveSpeechToDatabase(text);
+            } else {
+                resultDiv.innerHTML = "<p><em>" + text + "</em></p>";
+            }
+            spinner.style.display = 'none';
+        };
+
+        recognition.onerror = function(event) {
+            console.error('Speech recognition error:', event.error);
+            spinner.style.display = 'none';
+        };
+
+        window.onbeforeunload = function() {
+            recognition.stop();
+        };
+
+        function saveSpeechToDatabase(text) {
+            fetch('/speech_to_text', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ text: text }),
+            })
+            .then(response => response.json())
+            .then(data => console.log(data))
+            .catch(error => console.error('Error:', error));
+        }
+
+        function updateTimeDisplay() {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const seconds = now.getSeconds().toString().padStart(2, '0');
+            const timeString = `${hours}:${minutes}:${seconds}`;
+
+            document.getElementById('time-display').innerHTML = `<span>${timeString}</span>`;
+        }
+
+        // Update the time display initially and then set an interval to update it every second
+        updateTimeDisplay();
+        setInterval(updateTimeDisplay, 1000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hand Gesture Recognition</title>
+<script src="https://docs.opencv.org/4.5.4/opencv.js" integrity="sha384-vVZ2O/+L1HtqS3o79zhyDJ6fzW5lhqvuAOGUqBoJGeVVoaKJx5j49BzwWl/X4ge3" crossorigin="anonymous"></script>
+<style>
+    #videoElement {
+        width: 640px;
+        height: 480px;
+        background-color: #000;
+    }
+    #canvasElement {
+        display: none;
+    }
+</style>
+</head>
+<body>
+
+<video autoplay="true" id="videoElement"></video>
+<canvas id="canvasElement" width="640" height="480"></canvas>
+
+<script>
+    // Function to detect hand
+    function detectHand(frame) {
+        // Convert frame to grayscale
+        let gray = new cv.Mat();
+        cv.cvtColor(frame, gray, cv.COLOR_RGBA2GRAY);
+
+        // Detect palm using cascade classifier
+        let palms = new cv.RectVector();
+        let palmCascade = new cv.CascadeClassifier();
+        palmCascade.load('palm.xml'); // Adjust the path if necessary
+        palmCascade.detectMultiScale(gray, palms, 1.1, 4, 0, [0, 0]);
+
+        gray.delete();
+        return palms.size() > 0 ? palms.get(0) : null;
+    }
+
+    // Function to recognize gesture
+    function recognizeGesture(handRegion) {
+        // Your gesture recognition code here
+        // You can use any algorithm or method to recognize gestures based on the hand region
+        // For example, you can use machine learning models, image processing techniques, etc.
+        // For demonstration purposes, let's assume a simple rule-based approach
+
+        // Calculate some properties of the hand region to determine the gesture
+        const handWidth = handRegion.width;
+        const handHeight = handRegion.height;
+        const aspectRatio = handWidth / handHeight;
+
+        // Assume a fist if aspect ratio is close to 1
+        if (aspectRatio > 0.8 && aspectRatio < 1.2) {
+            return 0; // Fist gesture
+        } else {
+            return 1; // Open hand gesture
+        }
+    }
+
+    // Function to convert gesture to word
+    function gestureToWord(gesture) {
+        // Your mapping code here
+        // Map the recognized gesture to corresponding words or actions
+        // Add more mappings as needed for additional gestures
+
+        switch (gesture) {
+            case 0:
+                return "Fist";
+            case 1:
+                return "Open Hand";
+            case 2:
+                return "Thumbs Up";
+            case 3:
+                return "Thumbs Down";
+            case 4:
+                return "Peace Sign";
+            case 5:
+                return "Pointing Up";
+            case 6:
+                return "Pointing Down";
+            // Add more cases for additional gestures
+            default:
+                return "Unknown";
+        }
+    }
+
+    // Function to display video and recognition
+    function displayVideo() {
+        const video = document.getElementById("videoElement");
+        const canvas = document.getElementById("canvasElement");
+        const context = canvas.getContext("2d");
+
+        // Start video stream
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(function (stream) {
+                video.srcObject = stream;
+                video.play();
+            })
+            .catch(function (err) {
+                console.log("An error occurred: " + err);
+            });
+
+        // Starthand gesture recognition
+        video.addEventListener("play", function () {
+            setInterval(function () {
+                if (video.paused || video.ended) return;
+                context.drawImage(video, 0, 0, 640, 480);
+                const frame = context.getImageData(0, 0, 640, 480);
+                const handRegion = detectHand(frame);
+                if (handRegion !== null) {
+                    const gesture = recognizeGesture(handRegion);
+                    const word = gestureToWord(gesture);
+                    // Display word on the canvas
+                    context.font = "20px Arial";
+                    context.fillStyle = "green";
+                    context.fillText(word, 10, 30);
+                }
+            }, 100);
+        });
+    }
+
+    window.onload = function () {
+        displayVideo();
+    };
+</script>
+
+</body>
+</html>
